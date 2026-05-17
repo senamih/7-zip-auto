@@ -154,5 +154,5 @@
   2. csproj の 3 バージョンを同じ番号へ更新。
   3. クリーン発行（`rm -rf bin obj Release` → publish）。
   4. `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin vX.Y.Z`。タグは `v` プレフィックス付き、csproj/CHANGELOG と完全一致させる。
-  5. GitHub Releases を作成し、`Release/` を zip 化（`7-Zip-Auto.exe` + `LICENSE` + `THIRD-PARTY-NOTICES.txt`）して添付。リリースノートは CHANGELOG 該当版を転記。
+  5. GitHub Releases を作成し、`Release/` を zip 化（発行物すべて：`7-Zip-Auto.exe` + `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`）して添付。リリースノートは CHANGELOG 該当版を転記。
 - `0.y.z` は仕様流動期。本アプリは仕様確定済みのため `1.0.0` を初版とする。互換を壊す変更（settings.json 形式の非互換化等）は MAJOR、後方互換の機能追加は MINOR、修正のみは PATCH。
