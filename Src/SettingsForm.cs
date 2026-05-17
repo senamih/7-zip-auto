@@ -1,7 +1,11 @@
+using System.Diagnostics;
+
 namespace SevenZipAuto;
 
 public partial class SettingsForm : Form
 {
+    private const string AboutUrl = "https://github.com/senamih/7-zip-auto";
+
     public Settings Settings { get; }
 
     /// <summary>拡張子 → 対応する CheckBox。OK 時に差分判定するため保持。</summary>
@@ -211,6 +215,18 @@ public partial class SettingsForm : Form
 
         DialogResult = DialogResult.OK;
         Close();
+    }
+
+    private void LinkAbout_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(AboutUrl) { UseShellExecute = true });
+        }
+        catch
+        {
+            // 既定ブラウザ起動失敗は致命的でないため黙殺
+        }
     }
 
     private void ButtonCancel_Click(object? sender, EventArgs e)

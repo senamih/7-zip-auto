@@ -27,6 +27,7 @@ partial class SettingsForm
     private Button buttonOK = null!;
     private Button buttonCancel = null!;
     private ToolTip toolTip = null!;
+    private LinkLabel linkAbout = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -58,6 +59,7 @@ partial class SettingsForm
         buttonOK = new Button();
         buttonCancel = new Button();
         toolTip = new ToolTip(components);
+        linkAbout = new LinkLabel();
 
         SuspendLayout();
         groupSevenZip.SuspendLayout();
@@ -183,6 +185,13 @@ partial class SettingsForm
         buttonCancel.Location = new Point(664, 436);
         buttonCancel.Click += ButtonCancel_Click;
 
+        // linkAbout — 左下にソフト名＋バージョン。クリックで GitHub を開く
+        linkAbout.AutoSize = true;
+        linkAbout.Text = AppInfo.TitleWithVersion;
+        linkAbout.Location = new Point(16, 444);
+        linkAbout.LinkClicked += LinkAbout_LinkClicked;
+        toolTip.SetToolTip(linkAbout, AboutUrl);
+
         // SettingsForm
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
@@ -208,6 +217,7 @@ partial class SettingsForm
         Controls.Add(groupAssociations);
         Controls.Add(buttonOK);
         Controls.Add(buttonCancel);
+        Controls.Add(linkAbout);
 
         groupSevenZip.ResumeLayout(false);
         groupSevenZip.PerformLayout();

@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-18
+
+### Added
+- 設定画面の左下にソフト名＋バージョン（`AppInfo.TitleWithVersion`）のリンクを配置し、クリックで GitHub リポジトリを既定ブラウザで開くようにした。
+
 ## [1.0.0] - 2026-05-18
 
 初回リリース。
@@ -30,5 +35,6 @@
 - ガイドダイアログの「再検出」成功時に、検出したパスを通知ダイアログで表示してから通常動作へ遷移するようにした。
 - ソースファイルを `Src/` に整理。
 
-[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/senamih/7-zip-auto/releases/tag/v1.0.0
