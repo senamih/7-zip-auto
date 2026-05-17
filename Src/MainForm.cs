@@ -16,6 +16,11 @@ public partial class MainForm : Form
     /// ShowWindow() を経由したら解除する。</summary>
     public bool SilentMode { get; set; }
 
+    /// <summary>デバッグ用：true の間 7zG.exe を常に未検出として扱い、
+    /// 実際の検出失敗時とまったく同じ挙動（待機中保持・ガイド表示）を再現する。
+    /// ガイドでパスが確定したら解除され通常挙動に戻る。</summary>
+    public bool SimulateMissingSevenZip { get; set; }
+
     /// <summary>設定画面 OK 後に発火。Tray コンテキスト等が再構成のトリガに使う。</summary>
     public event EventHandler? SettingsChanged;
 
@@ -26,7 +31,7 @@ public partial class MainForm : Form
     {
         _settings = settings;
         InitializeComponent();
-        Text = "7-Zip-Auto";
+        Text = AppInfo.TitleWithVersion;
 
         flowPanel.SizeChanged += (_, _) => ResizeItemControls();
         LocationChanged += MainForm_LocationOrSizeChanged;
@@ -332,38 +337,64 @@ public partial class MainForm : Form
             SettingsManager.Save(_settings);
             SettingsChanged?.Invoke(this, EventArgs.Empty);
 
-            if (HasValidSevenZipPath())
-            {
-                _missingPathPrompted = false;
-                var sevenZipExe = ArchiveInspector.Resolve7zExePath(_settings.SevenZipGuiPath);
-
-                foreach (var item in _items.ToList())
-                {
-                    item.StartInspection(sevenZipExe);
-                }
-
-                foreach (var item in _items.Where(i => i.State == ExtractionState.Pending).ToList())
-                {
-                    item.Start(_settings.SevenZipGuiPath);
-                }
-            }
+            ResumePendingExtractions();
         }
     }
 
+    /// <summary>7zG.exe パスが有効になった後、検査をやり直し待機中（Pending）項目を展開開始する。
+    /// 設定画面 OK 後／ガイドダイアログでのパス確定後の両方から呼ぶ。</summary>
+    private void ResumePendingExtractions()
+    {
+        if (!HasValidSevenZipPath()) return;
+
+        _missingPathPrompted = false;
+        var sevenZipExe = ArchiveInspector.Resolve7zExePath(_settings.SevenZipGuiPath);
+
+        foreach (var item in _items.ToList())
+        {
+            item.StartInspection(sevenZipExe);
+        }
+
+        foreach (var item in _items.Where(i => i.State == ExtractionState.Pending).ToList())
+        {
+            item.Start(_settings.SevenZipGuiPath);
+        }
+    }
+
+    /// <summary>7zG.exe 未検出時の導線。サイト誘導／winget／再検出／手動指定を集約した
+    /// 専用ダイアログを出す。パスが確定したら保存し待機中項目を展開開始する。
+    /// 「今はしない」を選んだ場合は項目を待機中のまま一覧に残す（破棄しない）。</summary>
     private void PromptMissingSevenZip()
     {
         IWin32Window? owner = Visible ? this : null;
-        MessageBox.Show(
-            owner,
-            "7zG.exe のパスが設定されていません。\n設定画面でパスを指定してください。",
-            "7-Zip-Auto",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Warning);
-        ShowSettingsDialog();
+        using var dlg = new SevenZipGuideForm();
+        if (dlg.ShowDialog(owner) == DialogResult.OK && !string.IsNullOrEmpty(dlg.DetectedPath))
+        {
+            SimulateMissingSevenZip = false; // 確定したら再現モードを解除し通常挙動へ
+            _settings.SevenZipGuiPath = dlg.DetectedPath;
+            SettingsManager.Save(_settings);
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+            Logger.Info($"ガイドダイアログで 7zG.exe 確定: {dlg.DetectedPath}");
+            ResumePendingExtractions();
+        }
+        else
+        {
+            Logger.Info("ガイドダイアログ: パス未確定（待機中のまま一覧に残す）");
+        }
     }
 
     private bool HasValidSevenZipPath()
-        => !string.IsNullOrEmpty(_settings.SevenZipGuiPath) && File.Exists(_settings.SevenZipGuiPath);
+        => !SimulateMissingSevenZip
+           && !string.IsNullOrEmpty(_settings.SevenZipGuiPath)
+           && File.Exists(_settings.SevenZipGuiPath);
+
+    /// <summary>デバッグ用：通常ウィンドウ表示後に、実経路と同じ未検出ガイドを 1 回出す。
+    /// Program から UI スレッド上で呼ばれる。</summary>
+    public void DebugShowMissingGuide()
+    {
+        _missingPathPrompted = true; // 以後ファイル投入時に二重表示しない（実挙動と同じ）
+        PromptMissingSevenZip();
+    }
 
     private void MenuItemSettings_Click(object? sender, EventArgs e) => ShowSettingsDialog();
     private void MenuItemClear_Click(object? sender, EventArgs e) => ClearList();

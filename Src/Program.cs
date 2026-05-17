@@ -19,12 +19,26 @@ internal static class Program
         Logger.Info($"Args ({args.Length} 件): {(args.Length == 0 ? "(なし)" : string.Join(" | ", args))}");
         Logger.Info($"LogPath         : {Logger.CurrentPath}");
 
+        // デバッグ用：検出失敗シミュレーションモード。
+        // `7-Zip-Auto.exe --test-guide` で「7zG.exe が見つからなかった時」と同じ状態を再現する。
+        // 単体表示して終了するのではなく、通常どおりウィンドウを開いたうえでガイドを出し、
+        // 閉じた後もそのまま通常画面が残る（投入ファイルは待機中のまま保持される）。
+        // 実フラグは args から除外し、通常の引数解釈・起動判定に影響させない。
+        var simulateMissing = args.Any(a => string.Equals(a, "--test-guide", StringComparison.OrdinalIgnoreCase));
+        var appArgs = simulateMissing
+            ? args.Where(a => !string.Equals(a, "--test-guide", StringComparison.OrdinalIgnoreCase)).ToArray()
+            : args;
+        if (simulateMissing)
+        {
+            Logger.Info("テストモード: 7zG.exe 未検出を再現して通常起動する（--test-guide）");
+        }
+
         using var mutex = new Mutex(initiallyOwned: true, MutexName, out bool createdNew);
 
         if (!createdNew)
         {
             Logger.Info("Mutex 取得失敗 → 既存インスタンスへ引数転送");
-            ForwardArgsToRunningInstance(args);
+            ForwardArgsToRunningInstance(appArgs);
             Logger.Info("=========== 7-Zip-Auto 終了（多重起動側） ===========");
             return;
         }
@@ -54,9 +68,18 @@ internal static class Program
 
         var appContext = new TrayApplicationContext(mainForm, settings);
 
-        var hasArgs = args.Length > 0;
+        var hasArgs = appArgs.Length > 0;
         var (showWindow, showSettings) = GetStartupUiActions(firstRun, hasArgs, settings.TrayResident);
-        Logger.Info($"Startup UI: showWindow={showWindow}, showSettings={showSettings}");
+
+        if (simulateMissing)
+        {
+            // 検出失敗の再現：常駐設定や引数に関わらず必ず通常ウィンドウを出し、
+            // 設定ダイアログや SilentMode は無効化する（実際の未検出時の見え方に合わせる）。
+            showWindow = true;
+            showSettings = false;
+            mainForm.SimulateMissingSevenZip = true;
+        }
+        Logger.Info($"Startup UI: showWindow={showWindow}, showSettings={showSettings}, simulateMissing={simulateMissing}");
 
         // 無人実行モード判定：ウィンドウも設定画面も出さず、かつタスクトレイ常駐もしない状態。
         // この場合、展開が一通り終わり一覧が空になった時点でプロセスを終了する。
@@ -72,6 +95,8 @@ internal static class Program
             {
                 if (showWindow) mainForm.ShowWindow();
                 if (showSettings) mainForm.OpenSettingsDialog();
+                // 通常ウィンドウを出した直後に、未検出ガイドを実経路と同じ形で表示する。
+                if (simulateMissing) mainForm.DebugShowMissingGuide();
             }));
         }
 
@@ -79,7 +104,7 @@ internal static class Program
         {
             // 完全な初回起動 + 引数あり = ウィンドウ非表示で silent 処理する要件のため、
             // 通常の「2件以上 → 自動表示」ルールを抑止する。
-            mainForm.AddArchives(args, suppressMultiShow: firstRun);
+            mainForm.AddArchives(appArgs, suppressMultiShow: firstRun);
         }
 
         StartPipeServer(mainForm);

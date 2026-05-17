@@ -121,12 +121,12 @@ public partial class SettingsForm : Form
         var detected = SevenZipFinder.FindSevenZipGuiPath();
         if (string.IsNullOrEmpty(detected))
         {
-            MessageBox.Show(
-                this,
-                "7zG.exe を自動検出できませんでした。\n手動でパスを指定してください。",
-                "7-Zip-Auto",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            // 行き止まりにせず、導線集約ダイアログ（サイト／winget／再検出／手動）へ
+            using var guide = new SevenZipGuideForm();
+            if (guide.ShowDialog(this) == DialogResult.OK && !string.IsNullOrEmpty(guide.DetectedPath))
+            {
+                textSevenZipPath.Text = guide.DetectedPath;
+            }
         }
         else
         {

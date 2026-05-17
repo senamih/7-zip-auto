@@ -6,6 +6,8 @@
     `<改行>---<改行><改行>**指示**: <指示文言><改行><改行>**作業**: <作業まとめ><改行>`
   - ファイルの中身を確認しないこと。
   - ファイルが無い場合は作成すること。
+- 機能追加・変更・修正を行ったら、`CHANGELOG.md` の `[Unreleased]` セクションに Keep a Changelog 形式（Added / Changed / Fixed / Removed で分類）で追記すること。
+- ユーザーが「リリースして」「vX.Y.Z でリリース」等と指示したら、「リリース手順（バージョン管理）」の 5 ステップを実行すること。ただしタグ push と GitHub Release 公開は不可逆な外部公開のため、実行直前に必ずユーザーの最終確認を取ること。exe の動作確認は Windows 側でしか行えない点も明示すること。
 
 # 7-Zip連携アプリ「7-Zip-Auto」
 
@@ -37,8 +39,12 @@
 
 ### 展開
 - 7zG.exe を呼び出してアーカイブを展開する。
-- 7zG.exe のパスは設定画面で設定可能。設定ファイル不在の初回起動時、`.7z` 等の関連付けまたは `HKLM/HKCU\SOFTWARE\7-Zip\Path` から自動検出を試みる。
-- 設定画面の「検出」ボタンで任意のタイミングでも自動検出を再実行できる（検出失敗時は通知ダイアログを出す）。
+- 7zG.exe のパスは設定画面で設定可能。設定ファイル不在の初回起動時、`.7z` 等の関連付け → `HKLM/HKCU\SOFTWARE\7-Zip\Path` → 既定インストール先（`%ProgramW6432%`／`%ProgramFiles%`／`%ProgramFiles(x86)%`\7-Zip\7zG.exe）の順で自動検出を試みる。
+- 設定画面の「検出」ボタンで任意のタイミングでも自動検出を再実行できる。
+- 7zG.exe 未検出時は「導線集約ガイドダイアログ」（`SevenZipGuideForm`）を出す。行き止まりを作らず、`公式サイトを開く（https://www.7-zip.org/ ）`／`winget でインストール（winget 不在時は当該ボタン無効）`／`インストール済み → 再検出`／`手動で 7zG.exe を指定`／`今はしない` を 1 ダイアログに集約する。
+  - 呼び出し経路は 3 つ：初回／投入時の未検出（`MainForm.PromptMissingSevenZip`）、設定画面「検出」失敗時（`SettingsForm`）。
+  - 再検出・手動指定でパスが確定したら settings.json に保存し、待機中（Pending）項目をその場で展開開始する（`MainForm.ResumePendingExtractions`）。「今はしない」は項目を待機中のまま一覧に残し破棄しない。
+  - デバッグ用起動スイッチ `--test-guide`：7-Zip のアンインストールやレジストリ改変なしに「7zG.exe 未検出」を再現する。単体表示して終了するのではなく、常駐設定・引数に関わらず通常ウィンドウを開いたうえで実経路と同じガイドを表示し、閉じた後もそのまま通常画面が残る（投入ファイルは待機中のまま保持）。`MainForm.SimulateMissingSevenZip=true` の間 `HasValidSevenZipPath()` は常に false を返し、ガイドでパス確定時に解除されて通常挙動へ戻る。settings.json は改変しない（パス確定時のみ保存）。フラグは args から除去され通常の引数解釈に影響しない。
 - 展開先はアーカイブと同階層の「アーカイブ名（拡張子なし）」フォルダ。
 - 7-Zip の `-spe` スイッチを利用し、エントリルートに同名フォルダしかない場合の重複生成を回避する。
 
@@ -92,7 +98,7 @@
 - 書き込み失敗（権限不足等）は黙殺し、ロガー自身がアプリ動作に影響しないことを保証する。
 
 ### 命名・配布
-- ウィンドウタイトル・実行ファイル名はアプリ名「7-Zip-Auto」を用いる。
+- 実行ファイル名はアプリ名「7-Zip-Auto」を用いる。ウィンドウタイトルは `AppInfo.TitleWithVersion`（例：`7-Zip-Auto v1.0.0`）でバージョンを併記する（バージョンは csproj の InformationalVersion 由来。`+` 以降のビルドメタデータは除去）。
 - 専用アプリアイコン（マルチ解像度 `app.ico`）を、実行ファイル本体（Win32 リソース）・メインウィンドウ・タスクトレイの NotifyIcon の全てに適用する。
 - 発行物は **単一ファイル `7-Zip-Auto.exe` のみ**として `Release/` フォルダに格納する。DLL や PDB を伴わない 1 ファイルにすることを必須とする。
   - csproj に下記プロパティを設定し、`dotnet publish -c Release -o Release` だけで単一ファイル発行が完結する状態にする：
@@ -135,6 +141,17 @@
   DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet publish -c Release -o Release
   ```
 - **NuGet 依存なし**（.NET 8 / WinForms 標準ライブラリのみ）。
-- 発行物は `Release/` に **`7-Zip-Auto.exe`（単一ファイル・自己完結）+ `LICENSE` + `THIRD-PARTY-NOTICES.txt`**。後者 2 つは csproj の `CopyLicenseFiles` ターゲット（`AfterTargets="Publish"`）が単一ファイル化の後にコピーする（`None ... CopyToPublishDirectory` は単一ファイル発行下では exe に取り込まれてしまうため不可）。
+- 発行物は `Release/` に **`7-Zip-Auto.exe`（単一ファイル・自己完結）+ `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`**。exe 以外は csproj の `CopyLicenseFiles` ターゲット（`AfterTargets="Publish"`、`LicenseFiles` ItemGroup）が単一ファイル化の後にコピーする（`None ... CopyToPublishDirectory` は単一ファイル発行下では exe に取り込まれてしまうため不可）。
 - アイコン `app.ico`（マルチ解像度）は csproj の `<ApplicationIcon>` + `<EmbeddedResource>`。生成は ImageMagick の **`magick`**（`convert` は IM7 で非推奨）。**oklch は ImageMagick 非対応**なので sRGB 値を自前計算して渡す。
 - 実行・動作確認は Windows 側のみ。Windows 固有 API は Linux ビルドではエラーにならないが実行不可。ログは exe と同階層の `7-Zip-Auto.log`。
+
+### リリース手順（バージョン管理）
+
+- バージョンは **SemVer**（`MAJOR.MINOR.PATCH`）。真実の源は csproj の `<Version>`/`<FileVersion>`/`<InformationalVersion>`（3 つを一致させる。exe のファイルプロパティに焼き込まれる）。
+- リリース時の順序:
+  1. `CHANGELOG.md` の `[Unreleased]` の内容を新バージョン見出しへ移し、日付（実日付）を入れる。末尾の compare/tag リンクも更新。
+  2. csproj の 3 バージョンを同じ番号へ更新。
+  3. クリーン発行（`rm -rf bin obj Release` → publish）。
+  4. `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin vX.Y.Z`。タグは `v` プレフィックス付き、csproj/CHANGELOG と完全一致させる。
+  5. GitHub Releases を作成し、`Release/` を zip 化（`7-Zip-Auto.exe` + `LICENSE` + `THIRD-PARTY-NOTICES.txt`）して添付。リリースノートは CHANGELOG 該当版を転記。
+- `0.y.z` は仕様流動期。本アプリは仕様確定済みのため `1.0.0` を初版とする。互換を壊す変更（settings.json 形式の非互換化等）は MAJOR、後方互換の機能追加は MINOR、修正のみは PATCH。

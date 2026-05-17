@@ -10,9 +10,17 @@
     <RootNamespace>SevenZipAuto</RootNamespace>
     <AssemblyName>7-Zip-Auto</AssemblyName>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- バージョン・識別情報（リリース時はこの Version のみ更新すれば全派生に反映される） -->
     <Version>1.0.0</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
     <Product>7-Zip-Auto</Product>
     <Title>7-Zip-Auto</Title>
+    <Description>圧縮ファイルをドラッグ＆ドロップ／関連付けで受け取り 7-Zip で自動展開し展開先を開くユーティリティ。</Description>
+    <Authors>senamih</Authors>
+    <Company>senamih</Company>
+    <Copyright>Copyright (c) 2026 senamih</Copyright>
 
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
@@ -27,10 +35,12 @@
     <EmbeddedResource Include="app.ico" />
   </ItemGroup>
 
-  <!-- 発行時に LICENSE / THIRD-PARTY-NOTICES を発行先へコピーする -->
+  <!-- 発行時に LICENSE / THIRD-PARTY-NOTICES / README / CHANGELOG を発行先へコピーする -->
   <ItemGroup>
     <LicenseFiles Include="$(MSBuildProjectDirectory)/LICENSE" />
     <LicenseFiles Include="$(MSBuildProjectDirectory)/THIRD-PARTY-NOTICES.txt" />
+    <LicenseFiles Include="$(MSBuildProjectDirectory)/README.md" />
+    <LicenseFiles Include="$(MSBuildProjectDirectory)/CHANGELOG.md" />
   </ItemGroup>
 
   <Target Name="CopyLicenseFiles" AfterTargets="Publish">

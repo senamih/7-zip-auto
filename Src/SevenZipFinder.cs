@@ -26,7 +26,40 @@ internal static class SevenZipFinder
             return fromRegistry;
         }
 
-        Logger.Warn("7zG.exe 自動検出に失敗（関連付け／レジストリいずれも見つからず）");
+        var fromDefaultPath = FindFromDefaultPaths();
+        if (!string.IsNullOrEmpty(fromDefaultPath))
+        {
+            Logger.Info($"7zG.exe 検出（既定インストールパス経由）: {fromDefaultPath}");
+            return fromDefaultPath;
+        }
+
+        Logger.Warn("7zG.exe 自動検出に失敗（関連付け／レジストリ／既定パスいずれも見つからず）");
+        return null;
+    }
+
+    /// <summary>レジストリ未登録でも、7-Zip の既定インストール先を直接探索する。</summary>
+    private static string? FindFromDefaultPaths()
+    {
+        var bases = new[]
+        {
+            Environment.GetEnvironmentVariable("ProgramW6432"),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+        };
+
+        foreach (var b in bases)
+        {
+            if (string.IsNullOrEmpty(b)) continue;
+            try
+            {
+                var exe = Path.Combine(b, "7-Zip", "7zG.exe");
+                if (File.Exists(exe)) return exe;
+            }
+            catch
+            {
+                // 次の候補を試行
+            }
+        }
         return null;
     }
 

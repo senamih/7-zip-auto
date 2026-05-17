@@ -1,0 +1,34 @@
+# Changelog
+
+このファイルは本プロジェクトの主要な変更点を記録します。
+書式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に準拠し、
+バージョニングは [Semantic Versioning](https://semver.org/lang/ja/) に従います。
+
+## [Unreleased]
+
+## [1.0.0] - 2026-05-18
+
+初回リリース。
+
+### Added
+- 圧縮ファイルを引数／ドラッグ＆ドロップ／拡張子の関連付けで受け取り、7zG.exe で自動展開する基本機能。
+- 展開中の項目を行表示する一覧 UI（ファイル名／サイズ／エントリ数／状態／フォルダを開く・削除ボタン）。
+- 多重起動防止と展開キュー管理（複数投入時は順次処理、2 件以上で自動表示）。
+- タスクトレイ常駐 ON/OFF、無人実行（SilentMode）、一覧空時の自動クローズ等の起動・常駐制御。
+- 設定画面（7zG.exe／ファイラ指定、各種自動削除スイッチ、拡張子の関連付け）と `settings.json` への保存。
+- 7-Zip 未検出時の導線集約ガイドダイアログ `SevenZipGuideForm`。公式サイト誘導／winget インストール／再検出／手動指定／今はしない を 1 ダイアログに集約。
+- `SevenZipFinder` の検出経路に既定インストール先パス探索（`%ProgramW6432%`／`%ProgramFiles%`／`%ProgramFiles(x86)%`\7-Zip\7zG.exe）を追加。
+- デバッグ用起動スイッチ `--test-guide`：7-Zip 未検出を再現して通常起動する（通常ウィンドウを開いたうえで実経路と同じガイドを表示し、閉じても画面が残る。settings.json は改変しない）。
+- ウィンドウタイトルにバージョンを併記（例：`7-Zip-Auto v1.0.0`。`AppInfo` ヘルパ追加）。
+- 同梱ライセンス（`LICENSE` / `THIRD-PARTY-NOTICES.txt`）と発行先への自動コピー。
+- エンドユーザ向け `README.md`（対応書式・常駐／無人動作・設定/ログ/アンインストール・FAQ・変更履歴の節）、`CHANGELOG.md` を発行物（`Release/`）に同梱。
+- 簡易ロガー（`7-Zip-Auto.log`）、専用アプリアイコン。
+- 単一ファイル自己完結発行（`Release/7-Zip-Auto.exe`）。
+
+### Changed
+- 7zG.exe 未検出時の挙動：警告のみの行き止まり → ガイドダイアログへ集約。投入済みファイルは「待機中」で一覧に保持し、パス確定後に自動で展開を再開する。
+- ガイドダイアログの「再検出」成功時に、検出したパスを通知ダイアログで表示してから通常動作へ遷移するようにした。
+- ソースファイルを `Src/` に整理。
+
+[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/senamih/7-zip-auto/releases/tag/v1.0.0
