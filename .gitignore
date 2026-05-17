@@ -1,0 +1,41 @@
+# Build output
+bin/
+obj/
+Release/
+
+# .NET / Visual Studio
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.rsuser
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Publish profiles
+Properties/PublishProfiles/
+**/Properties/PublishProfiles/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings (per-user, not shared)
+.claude/settings.local.json
+
+# App runtime settings (generated next to the executable)
+settings.json
+
+# Local-only files
+*.local
+*.local.*
