@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWindowsForms>true</UseWindowsForms>
@@ -11,7 +11,7 @@
     <AssemblyName>7-Zip-Auto</AssemblyName>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- バージョン・識別情報（リリース時はこの Version のみ更新すれば全派生に反映される） -->
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
     <FileVersion>$(Version).0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>

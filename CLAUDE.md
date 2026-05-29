@@ -101,15 +101,20 @@
 ### 命名・配布
 - 実行ファイル名はアプリ名「7-Zip-Auto」を用いる。ウィンドウタイトルは `AppInfo.TitleWithVersion`（例：`7-Zip-Auto v1.0.0`）でバージョンを併記する（バージョンは csproj の InformationalVersion 由来。`+` 以降のビルドメタデータは除去）。
 - 専用アプリアイコン（マルチ解像度 `app.ico`）を、実行ファイル本体（Win32 リソース）・メインウィンドウ・タスクトレイの NotifyIcon の全てに適用する。
-- 発行物は **単一ファイル `7-Zip-Auto.exe` のみ**として `Release/` フォルダに格納する。DLL や PDB を伴わない 1 ファイルにすることを必須とする。
-  - csproj に下記プロパティを設定し、`dotnet publish -c Release -o Release` だけで単一ファイル発行が完結する状態にする：
-    - `RuntimeIdentifier=win-x64`、`SelfContained=true`、`PublishSingleFile=true`、`IncludeNativeLibrariesForSelfExtract=true`、`IncludeAllContentForSelfExtract=true`、`EnableCompressionInSingleFile=true`、`DebugType=embedded`。
+- 実行ファイルは **2 種類の単一ファイル exe** を `Release/` に格納する。いずれも DLL や PDB を伴わない 1 ファイルにする。
+  - `7-Zip-Auto.exe`：**自己完結（ランタイム同梱）**版。約 52 MB、.NET ランタイム不要。既定／推奨。
+  - `7-Zip-Auto-fd.exe`：**ランタイム非同梱（framework-dependent）**版。約 1.4 MB、別途 .NET 10 デスクトップランタイムが必要。`-fd` サフィックスで自己完結版と同居させる。
+  - 機能は同一。`AppInfo.Name` は定数 `7-Zip-Auto` のため、FD 版で `AssemblyName` を変えてもウィンドウタイトルは `7-Zip-Auto vX.Y.Z` のまま（FD 版のログは `7-Zip-Auto-fd.log` になる）。
+  - csproj の既定（下記）は自己完結・単一ファイル。FD 版は publish 時にプロパティを上書きして生成する：
+    - 既定：`RuntimeIdentifier=win-x64`、`SelfContained=true`、`PublishSingleFile=true`、`IncludeNativeLibrariesForSelfExtract=true`、`IncludeAllContentForSelfExtract=true`、`EnableCompressionInSingleFile=true`、`DebugType=embedded`。
+    - FD 版の上書き：`--self-contained false -p:SelfContained=false -p:EnableCompressionInSingleFile=false -p:AssemblyName=7-Zip-Auto-fd`（圧縮は自己完結時のみ可のため無効化必須）。
+  - `dotnet publish -o Release` は発行ごとに出力先をクリーンするため、**同一 `Release/` へ 2 回発行すると後勝ちで一方が消える**。FD 版は一時ディレクトリへ発行し、生成された `7-Zip-Auto-fd.exe` のみを `Release/` へコピーする（手順は「ビルド・発行」参照）。
   - 発行前に既存の `Release/`・`bin/`・`obj/` を削除して残骸が混入しないようにする。
 
 ## 環境構築（Alpine で dotnet build を通すまで）
 
 - 背景：Alpine の apk パッケージ `dotnet8-sdk`（`/usr/lib/dotnet`、`/usr/bin/dotnet`）は **Linux 向けワークロードのみ**で `Microsoft.NET.Sdk.WindowsDesktop` を含まず、WinForms（`UseWindowsForms=true`）プロジェクトは `WindowsDesktop.targets が見つからない` で失敗する。
-- 解決策：**Microsoft 公式配布の .NET SDK（Alpine 用 `linux-musl-x64` ビルド）には WindowsDesktop SDK が含まれる**。これを apk 管理下と衝突しない `/opt/dotnet-ms` へ展開して使う。本環境では構築済み（SDK 8.0.420 / Host 8.0.26）。
+- 解決策：**Microsoft 公式配布の .NET SDK（Alpine 用 `linux-musl-x64` ビルド）には WindowsDesktop SDK が含まれる**。これを apk 管理下と衝突しない `/opt/dotnet-ms` へ展開して使う。本環境では構築済み（**.NET 10 SDK 10.0.300 / Host 10.0.8** をターゲットに使用。.NET 8 SDK 8.0.421 も併存するが現行ターゲットは net10.0-windows）。
 - 公式 SDK が musl 上で動くための実行時依存（apk）：`bash curl ca-certificates icu-libs libgcc libstdc++ libintl zlib`。
   ```sh
   apk add --no-cache bash curl ca-certificates icu-libs libgcc libstdc++ libintl zlib
@@ -119,12 +124,12 @@
   curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
   chmod +x /tmp/dotnet-install.sh
   # Alpine は musl。dotnet-install.sh は RID を自動判定（linux-musl-x64）する
-  /tmp/dotnet-install.sh --channel 8.0 --quality ga --install-dir /opt/dotnet-ms
+  /tmp/dotnet-install.sh --channel 10.0 --quality ga --install-dir /opt/dotnet-ms
   ```
-  - 固定バージョンで揃えたい場合は `--version 8.0.420`（`--channel 8.0` の代わり）。
+  - 固定バージョンで揃えたい場合は `--version 10.0.300`（`--channel 10.0` の代わり）。
 - 導入確認：
   ```sh
-  DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet --info        # RID: linux-musl-x64, SDK 8.0.x
+  DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet --info        # RID: linux-musl-x64, SDK 10.0.x
   ls /opt/dotnet-ms/sdk/*/Sdks/ | grep WindowsDesktop                       # Microsoft.NET.Sdk.WindowsDesktop が出れば OK
   ```
 - win-x64 自己完結発行に要るランタイムパック（`Microsoft.NETCore.App.Runtime.win-x64` / `Microsoft.WindowsDesktop.App.Runtime.win-x64`）は `/opt/dotnet-ms/packs` には無く、初回 `restore`/`publish` 時に NuGet から取得され `~/.nuget` にキャッシュされる（オフライン環境では事前 restore が必要）。
@@ -135,14 +140,21 @@
 - **実装環境**: Alpine Linux（WSL2 可）。**ターゲット**: Windows 10/11 x64。
 - Alpine／Linux 標準の `dotnet8-sdk` には WindowsDesktop SDK が無く、WinForms（`UseWindowsForms`）プロジェクトはビルドできない。**Microsoft 公式 SDK が `/opt/dotnet-ms` に配置済み**（`Microsoft.NET.Sdk.WindowsDesktop` 同梱）。必ずこれを使う。csproj に `<EnableWindowsTargeting>true</EnableWindowsTargeting>` 必須（設定済み）。
 - 本プロジェクトは純粋な WinForms ＋ .NET 標準ライブラリのみで、`AllowUnsafeBlocks` やネイティブ相互運用は不要。
-- ビルド／発行は必ず DOTNET_ROOT を通す:
+- ビルド／発行は必ず DOTNET_ROOT を通す。**自己完結版を Release へ → FD 版を一時発行して exe だけ Release へ追加**の順で行う（逆順や同一フォルダ二重発行は後勝ちで一方が消える）:
   ```sh
   DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet build -c Release
-  rm -rf bin obj Release
+  rm -rf bin obj Release /tmp/pub-fd
+  # 1) 自己完結（ランタイム同梱）版を Release へ。付随ファイルも CopyLicenseFiles が配置
   DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet publish -c Release -o Release
+  # 2) FD（ランタイム非同梱）版を一時ディレクトリへ
+  DOTNET_ROOT=/opt/dotnet-ms PATH=/opt/dotnet-ms:$PATH dotnet publish -c Release -o /tmp/pub-fd \
+    --self-contained false -p:SelfContained=false \
+    -p:EnableCompressionInSingleFile=false -p:AssemblyName=7-Zip-Auto-fd
+  # 3) FD exe だけを Release へ追加
+  cp /tmp/pub-fd/7-Zip-Auto-fd.exe Release/ && rm -rf /tmp/pub-fd
   ```
-- **NuGet 依存なし**（.NET 8 / WinForms 標準ライブラリのみ）。
-- 発行物は `Release/` に **`7-Zip-Auto.exe`（単一ファイル・自己完結）+ `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`**。exe 以外は csproj の `CopyLicenseFiles` ターゲット（`AfterTargets="Publish"`、`LicenseFiles` ItemGroup）が単一ファイル化の後にコピーする（`None ... CopyToPublishDirectory` は単一ファイル発行下では exe に取り込まれてしまうため不可）。
+- **NuGet 依存なし**（.NET 10 / WinForms 標準ライブラリのみ）。
+- 発行物は `Release/` に **`7-Zip-Auto.exe`（自己完結・約52MB）+ `7-Zip-Auto-fd.exe`（ランタイム非同梱・約1.4MB）+ `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`**。exe 以外は csproj の `CopyLicenseFiles` ターゲット（`AfterTargets="Publish"`、`LicenseFiles` ItemGroup）が単一ファイル化の後にコピーする（`None ... CopyToPublishDirectory` は単一ファイル発行下では exe に取り込まれてしまうため不可）。README/CHANGELOG を publish 後に編集した場合は `Release/` 内の同名ファイルを最新へ差し替える。
 - アイコン `app.ico`（マルチ解像度）は csproj の `<ApplicationIcon>` + `<EmbeddedResource>`。生成は ImageMagick の **`magick`**（`convert` は IM7 で非推奨）。**oklch は ImageMagick 非対応**なので sRGB 値を自前計算して渡す。
 - 実行・動作確認は Windows 側のみ。Windows 固有 API は Linux ビルドではエラーにならないが実行不可。ログは exe と同階層の `7-Zip-Auto.log`。
 
@@ -154,5 +166,5 @@
   2. csproj の 3 バージョンを同じ番号へ更新。
   3. クリーン発行（`rm -rf bin obj Release` → publish）。
   4. `git tag -a vX.Y.Z -m "vX.Y.Z"` → `git push origin vX.Y.Z`。タグは `v` プレフィックス付き、csproj/CHANGELOG と完全一致させる。
-  5. GitHub Releases を作成し、`Release/` を zip 化（発行物すべて：`7-Zip-Auto.exe` + `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`）して添付。リリースノートは CHANGELOG 該当版を転記。
+  5. GitHub Releases を作成し、`Release/` を zip 化（発行物すべて：`7-Zip-Auto.exe` + `7-Zip-Auto-fd.exe` + `LICENSE` + `THIRD-PARTY-NOTICES.txt` + `README.md` + `CHANGELOG.md`）して添付。リリースノートは CHANGELOG 該当版を転記。
 - `0.y.z` は仕様流動期。本アプリは仕様確定済みのため `1.0.0` を初版とする。互換を壊す変更（settings.json 形式の非互換化等）は MAJOR、後方互換の機能追加は MINOR、修正のみは PATCH。

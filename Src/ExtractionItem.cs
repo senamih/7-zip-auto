@@ -19,7 +19,7 @@ public enum ExtractionState
 public sealed class ExtractionItem
 {
     public string ArchivePath { get; }
-    public string OutputDir { get; }
+    public string OutputDir { get; private set; }
     public Process? Process { get; private set; }
     public ExtractionState State { get; private set; } = ExtractionState.Pending;
     public int ExitCode { get; private set; }
@@ -93,6 +93,16 @@ public sealed class ExtractionItem
 
         try
         {
+            // 展開先フォルダ名が既存ファイルと衝突する場合（例: test.pptx.zip →
+            // フォルダ test.pptx を作ろうとするが同名ファイル test.pptx が既にある）は
+            // 連番付きの未使用パスへ退避する。確定後に UI へ反映するため発火。
+            var resolved = ResolveOutputDir(OutputDir);
+            if (!string.Equals(resolved, OutputDir, StringComparison.Ordinal))
+            {
+                Logger.Info($"展開先が既存ファイルと衝突したため変更: {OutputDir} → {resolved}");
+                OutputDir = resolved;
+                StateChanged?.Invoke(this, EventArgs.Empty);
+            }
             Directory.CreateDirectory(OutputDir);
         }
         catch (Exception ex)
@@ -127,6 +137,28 @@ public sealed class ExtractionItem
         {
             Logger.Error($"7zG.exe 起動失敗: archive={ArchivePath}", ex);
             UpdateState(ExtractionState.Failed);
+        }
+    }
+
+    /// <summary>
+    /// 展開先フォルダ名が既存の<b>ファイル</b>と衝突する場合は " (2)", " (3)" … と
+    /// 連番を付けて、ファイルにもフォルダにも衝突しない未使用パスを返す。
+    /// 既存フォルダがあるだけ／何も無い場合は引数をそのまま返し、従来どおり
+    /// そこへ展開（マージ）する動作を保つ。
+    /// </summary>
+    private static string ResolveOutputDir(string preferred)
+    {
+        // 何も無い、または既存フォルダがある → そのまま使う（後者は CreateDirectory が no-op）
+        if (!File.Exists(preferred)) return preferred;
+
+        // 同名ファイルが存在 → 連番付きの未使用パスを探す
+        var dir = Path.GetDirectoryName(preferred) ?? Directory.GetCurrentDirectory();
+        var name = Path.GetFileName(preferred);
+        for (int i = 2; ; i++)
+        {
+            var candidate = Path.Combine(dir, $"{name} ({i})");
+            if (!File.Exists(candidate) && !Directory.Exists(candidate))
+                return candidate;
         }
     }
 

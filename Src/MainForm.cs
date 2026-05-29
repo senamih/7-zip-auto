@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace SevenZipAuto;
 
 public partial class MainForm : Form
@@ -9,16 +11,21 @@ public partial class MainForm : Form
     private bool _missingPathPrompted;
     private bool _allowVisible;
 
+    // 以下はデザイナー非関与の実行時専用プロパティ。WinForms アナライザ(WFO1000)が
+    // 既定でシリアライズ対象とみなすため、Hidden を明示してデザイナー連携対象から外す。
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool AllowExit { get; set; }
 
     /// <summary>ウィンドウもトレイも持たない無人実行モード。
     /// 完了した項目は無条件で一覧から外し、一覧が空になればプロセス終了する。
     /// ShowWindow() を経由したら解除する。</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool SilentMode { get; set; }
 
     /// <summary>デバッグ用：true の間 7zG.exe を常に未検出として扱い、
     /// 実際の検出失敗時とまったく同じ挙動（待機中保持・ガイド表示）を再現する。
     /// ガイドでパスが確定したら解除され通常挙動に戻る。</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool SimulateMissingSevenZip { get; set; }
 
     /// <summary>設定画面 OK 後に発火。Tray コンテキスト等が再構成のトリガに使う。</summary>

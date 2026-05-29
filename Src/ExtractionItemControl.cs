@@ -63,6 +63,9 @@ public partial class ExtractionItemControl : UserControl
 
         labelEntries.Text = Item.EntryCount is int count ? $"{count} 件" : (Item.InspectionDone ? "—" : "…");
 
+        // 展開先は衝突回避で確定時に変わりうるため、その都度反映する
+        toolTip.SetToolTip(buttonOpen, $"フォルダを開く\n{Item.OutputDir}");
+
         // フォルダを開くは展開後（成功・失敗どちらも部分内容を見られるよう許可）
         buttonOpen.Enabled = Item.State == ExtractionState.Completed
                           || Item.State == ExtractionState.Failed;

@@ -6,8 +6,17 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-29
+
 ### Added
 - `README.md` に免責事項（無保証・損害について作者は責任を負わない旨）を追記。
+- 発行物にランタイム非同梱（framework-dependent）版 `7-Zip-Auto-fd.exe`（約 1.4 MB、別途 .NET 10 デスクトップランタイムが必要）を追加。自己完結版 `7-Zip-Auto.exe`（約 52 MB、ランタイム不要）と併せて 2 種類を Release に同梱。`README.md` に両者の使い分けを明記。
+
+### Changed
+- ターゲットフレームワークを .NET 8 から **.NET 10**（`net10.0-windows`）へ更新。あわせて .NET 10 の WinForms アナライザ(WFO1000)対応として、`MainForm` の実行時専用プロパティに `[DesignerSerializationVisibility(Hidden)]` を付与。
+
+### Fixed
+- 展開先フォルダ名（アーカイブ名から拡張子を除いた名前）が同階層の既存ファイルと衝突する場合（例: `test.pptx.zip` の展開先 `test.pptx` と元ファイル `test.pptx`）に「同名のファイル／ディレクトリが既に存在する」で展開失敗していた問題を修正。衝突時は ` (2)`, ` (3)` … と連番を付けた未使用フォルダへ展開する（既存フォルダがある場合は従来どおりそこへ展開）。
 
 ## [1.1.0] - 2026-05-18
 
@@ -38,6 +47,7 @@
 - ガイドダイアログの「再検出」成功時に、検出したパスを通知ダイアログで表示してから通常動作へ遷移するようにした。
 - ソースファイルを `Src/` に整理。
 
-[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/senamih/7-zip-auto/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/senamih/7-zip-auto/releases/tag/v1.0.0
