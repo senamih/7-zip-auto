@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-05-30
+
+### Added
+- 展開先フォルダをファイラで開けなかったときに、お知らせダイアログを表示するようにした。ファイラ起動失敗時はアクセス権限（本アプリとファイラの管理者権限の有無の食い違い等）が原因の可能性がある旨と詳細メッセージを案内する。フォルダが見つからない場合も同様に通知する。これまでは失敗してもログ出力のみで無反応だった。
+
 ## [1.2.1] - 2026-05-30
 
 ### Fixed
@@ -52,7 +57,8 @@
 - ガイドダイアログの「再検出」成功時に、検出したパスを通知ダイアログで表示してから通常動作へ遷移するようにした。
 - ソースファイルを `Src/` に整理。
 
-[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/senamih/7-zip-auto/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/senamih/7-zip-auto/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/senamih/7-zip-auto/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...v1.1.0
