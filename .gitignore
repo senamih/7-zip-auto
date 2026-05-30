@@ -39,3 +39,5 @@ settings.json
 # Local-only files
 *.local
 *.local.*
+
+_dev

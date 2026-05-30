@@ -30,6 +30,10 @@ public sealed class ExtractionItem
     public bool InspectionDone { get; private set; }
     private bool _inspectionInProgress;
 
+    /// <summary>展開に使った 7zG.exe のパス。終了後の整合性検証で同フォルダの
+    /// 7z.exe（CLI）を引くために保持する。</summary>
+    private string? _sevenZipGuiPath;
+
     /// <summary>一度に複数件（≥2）が投入された一括バッチの一員かどうか。
     /// 設定「複数ファイルが渡された時は自動で一覧から削除しない」の判定に使う。</summary>
     public bool IsFromMultiBatch { get; init; }
@@ -90,6 +94,8 @@ public sealed class ExtractionItem
     public void Start(string sevenZipGuiPath)
     {
         if (State != ExtractionState.Pending) return;
+
+        _sevenZipGuiPath = sevenZipGuiPath;
 
         try
         {
@@ -166,9 +172,45 @@ public sealed class ExtractionItem
     {
         try { ExitCode = Process?.ExitCode ?? -1; }
         catch { ExitCode = -1; }
-        var ok = ExitCode == 0;
+        var ok = DetermineSuccess(ExitCode);
         Logger.Info($"7zG.exe 終了: archive={ArchiveFileName}, exitCode={ExitCode}, result={(ok ? "OK" : "FAIL")}");
         UpdateState(ok ? ExtractionState.Completed : ExtractionState.Failed);
+    }
+
+    /// <summary>
+    /// 7zG.exe の終了コードから展開成功を判定する。
+    /// <list type="bullet">
+    /// <item>0：成功。</item>
+    /// <item>1：警告（ファイル自体は展開済み）→ 成功扱い。</item>
+    /// <item>2：致命的エラー。ただし 7zG.exe は「アーカイブ末尾に余分なデータがある」等の
+    /// <b>無害な警告</b>でも 2 を返すことがある（Google Fonts の zip 等）。この場合は
+    /// コンソール版 7z でアーカイブ実体を検証し、健全なら成功扱いにする
+    /// （破損・検証不能なら従来どおり失敗）。</item>
+    /// <item>それ以外（7=コマンドエラー / 8=メモリ不足 / 255=ユーザ中断 等）：失敗。
+    /// これらは無害な警告ではないため救済せず、誤って完了扱いにしない。</item>
+    /// </list>
+    /// </summary>
+    private bool DetermineSuccess(int exitCode)
+    {
+        if (exitCode == 0) return true;
+        if (exitCode == 1)
+        {
+            Logger.Warn($"7zG.exe が警告終了（exitCode=1）。展開は完了として扱う: archive={ArchiveFileName}");
+            return true;
+        }
+        if (exitCode != 2) return false;
+
+        // exitCode==2：無害な警告か本当の破損かをコンソール版 7z で切り分ける。
+        var sevenZipExe = ArchiveInspector.Resolve7zExePath(_sevenZipGuiPath);
+        var integrity = ArchiveInspector.VerifyArchive(ArchivePath, sevenZipExe);
+        if (integrity == ArchiveInspector.ArchiveIntegrity.Intact)
+        {
+            Logger.Warn($"7zG.exe が exitCode=2 だがアーカイブは健全（末尾余剰データ等の警告と判断）。" +
+                        $"展開は完了として扱う: archive={ArchiveFileName}");
+            return true;
+        }
+        Logger.Warn($"7zG.exe が exitCode=2 でアーカイブ整合性も非健全（{integrity}）。失敗扱い: archive={ArchiveFileName}");
+        return false;
     }
 
     private void UpdateState(ExtractionState newState)

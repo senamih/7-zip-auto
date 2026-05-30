@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-05-30
+
+### Fixed
+- アーカイブ末尾に余分なデータが付いた zip（Google Fonts のダウンロード zip 等）で、ファイルは正常に展開できているのに 7zG.exe が終了コード 2（「There are data after the end of archive」相当の無害な警告）を返し、一覧で「失敗」表示になっていた問題を修正。7zG.exe が終了コード 2 のときはコンソール版 7z でアーカイブ実体を検証し、健全であれば「完了」として扱う。終了コード 1（警告）も完了扱いとする。本当に破損している場合・ユーザ中断（255）等は従来どおり失敗のまま。
+
 ## [1.2.0] - 2026-05-29
 
 ### Added
@@ -47,7 +52,8 @@
 - ガイドダイアログの「再検出」成功時に、検出したパスを通知ダイアログで表示してから通常動作へ遷移するようにした。
 - ソースファイルを `Src/` に整理。
 
-[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/senamih/7-zip-auto/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/senamih/7-zip-auto/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/senamih/7-zip-auto/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/senamih/7-zip-auto/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/senamih/7-zip-auto/releases/tag/v1.0.0
